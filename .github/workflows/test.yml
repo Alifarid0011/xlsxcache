@@ -1,0 +1,29 @@
+name: test
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.25.x'
+          cache: false
+      - run: go test -race -cover ./...
+      - run: go vet ./...
+      - run: go build ./cmd/xlsxcache
+      - name: Verify missing-cache exit code
+        shell: bash
+        run: |
+          set +e
+          ./xlsxcache --json testdata/missing-cache.xlsx > report.json
+          code=$?
+          set -e
+          test "$code" -eq 1
